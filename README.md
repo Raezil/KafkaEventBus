@@ -26,4 +26,4 @@ func main() {
 	dispatcher := NewDispatcher()
 	dispatcher.Publish(jsonData)
 }
-```# KafkaEventBus
+```
