@@ -14,6 +14,23 @@ type Result struct {
 	Message string
 }
 
+type EventStore struct {
+	Dispatcher *Dispatcher
+	Producer   *sarama.SyncProducer
+}
+
+func NewEventStore() *EventStore {
+	dispatcher := NewDispatcher()
+	producer, err := NewProducer()
+	if err != nil {
+		panic(err)
+	}
+	return &EventStore{
+		Dispatcher: dispatcher,
+		Producer:   &producer,
+	}
+}
+
 type Dispatcher map[string]func(map[string]interface{}) (Result, error)
 
 func NewDispatcher() *Dispatcher {
@@ -30,13 +47,13 @@ func NewDispatcher() *Dispatcher {
 	}
 }
 
-func (dispatcher *Dispatcher) Publish(jsonData []byte) {
+func (eventstore *EventStore) Publish(jsonData []byte) {
 	var event Event
 	err := json.Unmarshal(jsonData, &event)
 	if err != nil {
 		log.Fatalf("Error unmarshalling JSON: %v", err)
 	}
-	handler, exists := (*dispatcher)[event.Projection]
+	handler, exists := (*eventstore.Dispatcher)[event.Projection]
 	if !exists {
 		panic("handler does not exist!")
 	}
@@ -74,7 +91,7 @@ func NewEvent(projection string, args map[string]any) *Event {
 	}
 }
 
-func (event *Event) Commit(producer *sarama.SyncProducer) ([]byte, error) {
+func (eventstore *EventStore) Commit(event *Event) ([]byte, error) {
 	// Marshal the struct into JSON
 	jsonData, err := json.Marshal(event)
 	if err != nil {
@@ -88,7 +105,7 @@ func (event *Event) Commit(producer *sarama.SyncProducer) ([]byte, error) {
 	}
 
 	// Send the message to Kafka
-	partition, offset, err := (*producer).SendMessage(message)
+	partition, offset, err := (*eventstore.Producer).SendMessage(message)
 	if err != nil {
 		log.Fatalf("Error sending message: %v", err)
 		return nil, err
