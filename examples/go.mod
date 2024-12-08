@@ -2,7 +2,7 @@ module main
 
 go 1.22.2
 
-require github.com/Raezil/KafkaEventBus v0.0.0-20241208154228-39f20d14ecfe
+require github.com/Raezil/KafkaEventBus v0.1.0
 
 require (
 	github.com/IBM/sarama v1.43.3 // indirect
